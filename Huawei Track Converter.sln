@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2048
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Huawei Track Converter", "Huawei Track Converter\Huawei Track Converter.csproj", "{0B4E1622-5819-4939-81B9-064472CD93B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0B4E1622-5819-4939-81B9-064472CD93B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B4E1622-5819-4939-81B9-064472CD93B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B4E1622-5819-4939-81B9-064472CD93B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B4E1622-5819-4939-81B9-064472CD93B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2C2D5969-0938-40AD-919D-AA4EBF7B4B72}
+	EndGlobalSection
+EndGlobal
