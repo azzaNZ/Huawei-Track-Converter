@@ -36,6 +36,8 @@
             this.gMapControl1 = new GMap.NET.WindowsForms.GMapControl();
             this.listBoxFiles = new System.Windows.Forms.ListBox();
             this.lblDistance = new System.Windows.Forms.Label();
+            this.lblAscent = new System.Windows.Forms.Label();
+            this.lblDescent = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // imageList1
@@ -104,11 +106,31 @@
             this.lblDistance.TabIndex = 7;
             this.lblDistance.Text = "Distance:";
             // 
+            // lblAscent
+            // 
+            this.lblAscent.AutoSize = true;
+            this.lblAscent.Location = new System.Drawing.Point(574, 42);
+            this.lblAscent.Name = "lblAscent";
+            this.lblAscent.Size = new System.Drawing.Size(44, 13);
+            this.lblAscent.TabIndex = 8;
+            this.lblAscent.Text = "Ascent:";
+            // 
+            // lblDescent
+            // 
+            this.lblDescent.AutoSize = true;
+            this.lblDescent.Location = new System.Drawing.Point(725, 42);
+            this.lblDescent.Name = "lblDescent";
+            this.lblDescent.Size = new System.Drawing.Size(51, 13);
+            this.lblDescent.TabIndex = 9;
+            this.lblDescent.Text = "Descent:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1040, 535);
+            this.Controls.Add(this.lblDescent);
+            this.Controls.Add(this.lblAscent);
             this.Controls.Add(this.lblDistance);
             this.Controls.Add(this.listBoxFiles);
             this.Controls.Add(this.gMapControl1);
@@ -131,6 +153,8 @@
         private GMap.NET.WindowsForms.GMapControl gMapControl1;
         private System.Windows.Forms.ListBox listBoxFiles;
         private System.Windows.Forms.Label lblDistance;
+        private System.Windows.Forms.Label lblAscent;
+        private System.Windows.Forms.Label lblDescent;
     }
 }
 

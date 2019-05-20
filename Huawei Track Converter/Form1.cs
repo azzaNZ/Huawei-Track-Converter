@@ -134,7 +134,9 @@ namespace Huawei_Track_Converter
                 {
                     string path = $@"{folder}\{listBoxFiles.SelectedItems[0]}";
                     HuaweiParser hp = new HuaweiParser(path);
-                    lblDistance.Text = "Distance: " + Convert.ToInt32(hp.TotalDistance).ToString() + "m";
+                    lblDistance.Text = $"Distance: {Convert.ToInt32(hp.TotalDistance).ToString()}m";
+                    lblAscent.Text = $"Ascent: {Convert.ToInt32(hp.Ascent).ToString()}m";
+                    lblDescent.Text = $"Descent: {Convert.ToInt32(hp.Descent).ToString()}m";
                     LoadHuaweiDataOntoMap(hp);
                 }
             }

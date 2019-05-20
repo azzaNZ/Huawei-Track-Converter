@@ -1,26 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Device.Location;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Huawei_Track_Converter
 {
     public class HuaweiParser
     {
-        List<HuaweiDatumPoint> data = new List<HuaweiDatumPoint>();
+        //altitude data embedded in the tp=lbs returns incorrect results 
+        //altitude data contained in tp=alti is correct
+        //when set to true the altitude data contained in tp=lbs will be ignored
+        private bool ignoreAltitudeInLocationData = true;
+
+        //list of data points extracted from Huawei file
+        List<HuaweiDatumPoint> _data = new List<HuaweiDatumPoint>();
         public List<HuaweiDatumPoint> Data
         {
-            get => data;
-            set => data = value;
+            get => _data;
+            set => _data = value;
         }
 
+        /// <summary>
+        /// Total distance contained within parsed data
+        /// </summary>
         public double TotalDistance
         {
-            get { return data.Sum(x => x.distance); }
+            get { return _data.Sum(x => x.distance); }
         }
+        /// <summary>
+        /// Total climbing meters
+        /// </summary>
+        public double Ascent
+        {
+            get { return _data.Where(x => x.verticalDistance>0).Sum(x => x.verticalDistance); }
+        }
+        /// <summary>
+        /// Total descending meters
+        /// </summary>
+        public double Descent
+        {
+            get { return Math.Abs(_data.Where(x => x.verticalDistance < 0).Sum(x => x.verticalDistance)); }
+        }
+
 
         //path of file to attempt to parse as a huawei file
         public HuaweiParser(string path)
@@ -57,11 +78,13 @@ namespace Huawei_Track_Converter
                                     {
                                         NormaliseTimeStamp(ref timeStamp);
                                         //get this timestamp from dataset
-                                        dataPoint = GetDataPoint(ref data, timeStamp);
+                                        dataPoint = GetDataPoint(ref _data, timeStamp);
                                         //add location data to dataPoint
                                         dataPoint.latitude = latitude;
                                         dataPoint.longitude = longitude;
-                                        dataPoint.altitude = Convert.ToDouble(lineItemArray[4].Substring(4));
+
+                                        if (!ignoreAltitudeInLocationData)
+                                            dataPoint.altitude = Convert.ToDouble(lineItemArray[4].Substring(4));
                                     }
                                     break;
 
@@ -69,7 +92,7 @@ namespace Huawei_Track_Converter
                                     //heartrate lines
                                     timeStamp = Convert.ToInt64(Convert.ToDouble(lineItemArray[1].Substring(2)));
                                     NormaliseTimeStamp(ref timeStamp);
-                                    dataPoint = GetDataPoint(ref data, timeStamp);
+                                    dataPoint = GetDataPoint(ref _data, timeStamp);
                                     //add heart rate data to dataPoint
                                     int heartRate = Convert.ToInt32(lineItemArray[2].Substring(2));
                                     if (heartRate>0 && heartRate<255)
@@ -79,7 +102,7 @@ namespace Huawei_Track_Converter
                                     //cadence
                                     timeStamp = Convert.ToInt64(Convert.ToDouble(lineItemArray[1].Substring(2)));
                                     NormaliseTimeStamp(ref timeStamp);
-                                    dataPoint = GetDataPoint(ref data, timeStamp);
+                                    dataPoint = GetDataPoint(ref _data, timeStamp);
                                     int cadence = Convert.ToInt32(lineItemArray[2].Substring(2));
                                     if (cadence > 0 && cadence < 255)
                                         dataPoint.cadence = cadence;
@@ -94,14 +117,16 @@ namespace Huawei_Track_Converter
                                     //altitude
                                     timeStamp = Convert.ToInt64(Convert.ToDouble(lineItemArray[1].Substring(2)));
                                     NormaliseTimeStamp(ref timeStamp);
-                                    dataPoint = GetDataPoint(ref data, timeStamp);
+                                    dataPoint = GetDataPoint(ref _data, timeStamp);
                                     double altitude = Convert.ToDouble(lineItemArray[2].Substring(2));
-                                    if (altitude>-1000 && altitude<10000)
+                                    //don't use altitudes outside feasible range, or if we already have one for this data point (from location dataset)
+                                    if (altitude>-1000 && altitude<10000 && dataPoint.altitude==0)
                                         dataPoint.altitude = altitude;
                                     break;
-                                    //default:
+                                default:
                                     //unknown
                                     //throw new Exception($"Unknown line:{line}");
+                                    break;
                             }
                         }
 
@@ -119,11 +144,11 @@ namespace Huawei_Track_Converter
 
                 //POST-PROCESSING
                 //sort by date order
-                data.Sort();
+                _data.Sort();
                 //fill in missing altitude data
-                FillInAltitudeData(ref data);
+                FillInAltitudeData(ref _data);
                 //Calculate distances between points
-                CalculateDistances(ref data);
+                CalculateDistances(ref _data);
             }
         }
 
@@ -141,7 +166,7 @@ namespace Huawei_Track_Converter
             foreach (HuaweiDatumPoint point in data)
             {
                 if (point.altitude != 0)
-                    currentAltitude = point.altitude;
+                    currentAltitude = point.altitude;               //set current altitude
                 else if (point.HasPosition && currentAltitude != 0)
                     point.altitude = currentAltitude;               //if we have a position then set altitude
             }
@@ -153,19 +178,47 @@ namespace Huawei_Track_Converter
         /// <param name="data"></param>
         private void CalculateDistances(ref List<HuaweiDatumPoint> data)
         {
-            //fill in missing altitude data
-            GeoCoordinate currentLocation = null;
+            HuaweiDatumPoint currentPoint = null;
+            int index = 0;      //keep track which point we are on
+
+            //used to hold list of points that are obviously wrong and should be removed.
+            //Can't do it inside enumeration, so collecting point to remove later
+            //Should probably combined with the "no position" 90,-80 points
+            List<HuaweiDatumPoint> removePoints = new List<HuaweiDatumPoint>();
+            double climbing = 0;
+
             foreach (HuaweiDatumPoint point in data)
             {
+                index++;
                 if (point.HasPosition)
                 {
                     //work out distance from previous position to here
-                    if (currentLocation != null)
-                        point.distance = currentLocation.GetDistanceTo(point.position);  //distance in meters
+                    if (currentPoint != null)
+                    {
+                        //calculate distance
+                        point.distance = currentPoint.position.GetDistanceTo(point.position); //distance in meters
+                        point.speed = point.distance/(point.time- currentPoint.time)*(3600/1000);        //speed in km/h
 
-                    //update current location with this point's position
-                    currentLocation = point.position;
+                        //calculate vertical distance (climbing or descending)
+                        point.verticalDistance = point.altitude - currentPoint.position.Altitude;
+                        if (point.verticalDistance > 0)
+                            climbing += point.verticalDistance;
+                    }
+                    
+                    //check for obvious incorrect location
+                    //I've picked an arbitrary speed, 100km/h
+                    //I've seen instances in deep bush of the watch throwing in the odd rogue lat/long point
+                    if (point.speed > 100)
+                        removePoints.Add(point);
+                    else
+                        //update current location with this point's position
+                        currentPoint = point;
                 }
+            }
+
+            foreach (HuaweiDatumPoint point in removePoints)
+            {
+                data.Remove(point);
             }
         }
 
@@ -219,8 +272,8 @@ namespace Huawei_Track_Converter
     public class HuaweiDatumPoint: IComparable
     {
         //normalised time of datum.  Note that is used as an identifier for adding separately tracked data such as altitude and cadence
-        private Int64 _time;
-        public Int64 time
+        private long _time;
+        public long time
         {
             get => _time;
             set
@@ -275,6 +328,8 @@ namespace Huawei_Track_Converter
 
         public GeoCoordinate position { get; private set; }     //lat/long as coordinate
         public double distance { get; set; }            //distance covered since last position
+        public double verticalDistance { get; set; }    //climbing if positive, descending if negative
+        public double speed { get; set; }               //speed in km/h
         public int heartRate { get; set; }              //heartRate
         public int cadence { get; set; }                //cadence
 
