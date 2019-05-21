@@ -297,6 +297,7 @@ namespace Huawei_Track_Converter
 
                 //create root node
                 XmlNode nodeRoot = doc.CreateElement("gpx");
+                doc.AppendChild(nodeRoot);
                 //root attributes
                 XmlAttribute attribute = doc.CreateAttribute("xmlns:gpxext");
                 attribute.Value = @"http://www.garmin.com/xmlschemas/GpxExtensions/v3";
@@ -310,8 +311,6 @@ namespace Huawei_Track_Converter
                 attribute = doc.CreateAttribute("Creator");
                 attribute.Value = @"Huawei Track Converter";
                 nodeRoot.Attributes.Append(attribute);
-                //add root to document
-                doc.AppendChild(nodeRoot);
 
                 XmlNode nodeTrk = doc.CreateElement("trk");
                 nodeRoot.AppendChild(nodeTrk);
@@ -323,7 +322,6 @@ namespace Huawei_Track_Converter
                 XmlNode nodeTrkseg = null;
                 foreach (HuaweiDatumPoint point in Data)
                 {
-                    //todo look for big gaps in time between points & use to split into separate segments
                     //todo look at precision (2dp dropped from lat/long)
                     if (point.HasPosition)
                     {
@@ -371,7 +369,44 @@ namespace Huawei_Track_Converter
         {
             try
             {
+                //create document
+                XmlDocument doc = new XmlDocument();
+                XmlNode docNode = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
+                doc.AppendChild(docNode);
 
+                //create root node
+                XmlNode nodeRoot = doc.CreateElement("TrainingCenterDatabase");
+                doc.AppendChild(nodeRoot);
+
+                //root attributes
+                XmlAttribute attribute = doc.CreateAttribute("xmlns");
+                attribute.Value = @"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xmlns:ns3");
+                attribute.Value = @"http://www.garmin.com/xmlschemas/ActivityExtension/v2";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xmlns:xsd");
+                attribute.Value = @"http://www.w3.org/2001/XMLSchema";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xmlns:xsi");
+                attribute.Value = @"http://www.w3.org/2001/XMLSchema-instance";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xsi:schemaLocation");
+                attribute.Value = @"https://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd";
+                nodeRoot.Attributes.Append(attribute);
+
+                //create activity structure
+                XmlNode nodeActivities = doc.CreateElement("Activities");
+                nodeRoot.AppendChild(nodeActivities);
+                XmlNode nodeActivity = doc.CreateElement("Activity");
+                nodeActivities.AppendChild(nodeActivity);
+
+                //id - use UTC Time of first point
+                XmlNode nodeId = doc.CreateElement("Id");
+                nodeId.InnerText = Data.FirstOrDefault().utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                nodeActivity.AppendChild(nodeId);
+
+                doc.Save(exportPath);
             }
             catch (Exception e)
             {

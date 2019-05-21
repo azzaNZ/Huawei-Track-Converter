@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Device.Location;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -93,6 +94,7 @@ namespace Huawei_Track_Converter
                 GMapRoute line_layer = new GMapRoute("single_line") { Stroke = new Pen(Brushes.Blue, 4) };
                 GMapOverlay line_overlay = new GMapOverlay("route");
 
+                gMapControl1.Overlays.Clear();              //remove any previous 
                 line_overlay.Routes.Add(line_layer);
                 gMapControl1.Overlays.Add(line_overlay);
 
@@ -100,7 +102,8 @@ namespace Huawei_Track_Converter
 
                 foreach (HuaweiDatumPoint point in hp.Data)
                 {
-                    if (point.HasPosition)
+                    //start of section ignored, as sometimes ends with 'rogue' start of section
+                    if (point.HasPosition  && !point.startOfSection)
                     {
                         line_layer.Points.Add(new PointLatLng(point.latitude, point.longitude));
                     }
@@ -116,9 +119,18 @@ namespace Huawei_Track_Converter
 
                 //zoom to route
                 gMapControl1.ZoomAndCenterRoute(line_layer);
-                //you can even add markers at the end of the lines by adding markers to the same layer:
-                //GMapMarker marker_ = new GMarkerCross(p);
-                //line_overlay.Markers.Add(marker_);
+
+                //mark start pos
+                GeoCoordinate startPos = hp.Data.Where(x => x.HasPosition).FirstOrDefault().position;
+                PointLatLng startMarker = new PointLatLng(startPos.Latitude,startPos.Longitude);
+                GMapMarker marker = new GMarkerGoogle(startMarker, GMarkerGoogleType.green_big_go);
+                line_overlay.Markers.Add(marker);
+
+                //mark end pos
+                GeoCoordinate endPos = hp.Data.Where(x => x.HasPosition && !x.startOfSection).LastOrDefault().position;
+                PointLatLng endMarker = new PointLatLng(endPos.Latitude, endPos.Longitude);
+                marker = new GMarkerGoogle(endMarker, GMarkerGoogleType.red_big_stop);
+                line_overlay.Markers.Add(marker);
 
             }
             catch (Exception ex)
@@ -167,7 +179,13 @@ namespace Huawei_Track_Converter
                 if (listBoxFiles.Text == "")
                     throw new Exception("Please select file to export");
 
-                switch (listBoxExportFormal.Text)
+                if (hp == null || hp.Data.Count == 0)
+                    throw new Exception("No data to export");
+
+                if (listBoxActivity.Visible && listBoxActivity.Text == "")
+                    throw new Exception("Please select Activity type");
+
+                switch (listBoxExportFormat.Text)
                 {
                     case "GPX":
                         exportPath += ".gpx";
@@ -188,6 +206,12 @@ namespace Huawei_Track_Converter
             {
                 MessageBox.Show(ex.Message, "Could not export", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
+        }
+
+        private void listBoxExportFormat_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            listBoxActivity.Visible = listBoxExportFormat.Text == "TCX";
+            lblActivityType.Visible = listBoxActivity.Visible;
         }
     }
 }

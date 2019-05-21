@@ -39,9 +39,11 @@
             this.lblAscent = new System.Windows.Forms.Label();
             this.lblDescent = new System.Windows.Forms.Label();
             this.lblDuration = new System.Windows.Forms.Label();
-            this.listBoxExportFormal = new System.Windows.Forms.ListBox();
+            this.listBoxExportFormat = new System.Windows.Forms.ListBox();
             this.label1 = new System.Windows.Forms.Label();
             this.btnExport = new System.Windows.Forms.Button();
+            this.listBoxActivity = new System.Windows.Forms.ListBox();
+            this.lblActivityType = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // imageList1
@@ -140,17 +142,18 @@
             this.lblDuration.TabIndex = 10;
             this.lblDuration.Text = "Duration:";
             // 
-            // listBoxExportFormal
+            // listBoxExportFormat
             // 
-            this.listBoxExportFormal.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.listBoxExportFormal.FormattingEnabled = true;
-            this.listBoxExportFormal.Items.AddRange(new object[] {
+            this.listBoxExportFormat.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.listBoxExportFormat.FormattingEnabled = true;
+            this.listBoxExportFormat.Items.AddRange(new object[] {
             "GPX",
             "TCX"});
-            this.listBoxExportFormal.Location = new System.Drawing.Point(427, 458);
-            this.listBoxExportFormal.Name = "listBoxExportFormal";
-            this.listBoxExportFormal.Size = new System.Drawing.Size(135, 30);
-            this.listBoxExportFormal.TabIndex = 11;
+            this.listBoxExportFormat.Location = new System.Drawing.Point(427, 458);
+            this.listBoxExportFormat.Name = "listBoxExportFormat";
+            this.listBoxExportFormat.Size = new System.Drawing.Size(135, 30);
+            this.listBoxExportFormat.TabIndex = 11;
+            this.listBoxExportFormat.SelectedIndexChanged += new System.EventHandler(this.listBoxExportFormat_SelectedIndexChanged);
             // 
             // label1
             // 
@@ -166,23 +169,51 @@
             // 
             this.btnExport.Image = ((System.Drawing.Image)(resources.GetObject("btnExport.Image")));
             this.btnExport.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnExport.Location = new System.Drawing.Point(568, 456);
+            this.btnExport.Location = new System.Drawing.Point(427, 491);
             this.btnExport.Name = "btnExport";
-            this.btnExport.Size = new System.Drawing.Size(123, 32);
+            this.btnExport.Size = new System.Drawing.Size(135, 32);
             this.btnExport.TabIndex = 13;
             this.btnExport.Text = "Export";
             this.btnExport.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.btnExport.UseVisualStyleBackColor = true;
             this.btnExport.Click += new System.EventHandler(this.btnExport_Click);
             // 
+            // listBoxActivity
+            // 
+            this.listBoxActivity.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.listBoxActivity.FormattingEnabled = true;
+            this.listBoxActivity.Items.AddRange(new object[] {
+            "Running",
+            "Biking",
+            "Other ",
+            "MultiSport"});
+            this.listBoxActivity.Location = new System.Drawing.Point(577, 458);
+            this.listBoxActivity.Name = "listBoxActivity";
+            this.listBoxActivity.Size = new System.Drawing.Size(135, 56);
+            this.listBoxActivity.TabIndex = 14;
+            this.listBoxActivity.Visible = false;
+            // 
+            // lblActivityType
+            // 
+            this.lblActivityType.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.lblActivityType.AutoSize = true;
+            this.lblActivityType.Location = new System.Drawing.Point(574, 442);
+            this.lblActivityType.Name = "lblActivityType";
+            this.lblActivityType.Size = new System.Drawing.Size(71, 13);
+            this.lblActivityType.TabIndex = 15;
+            this.lblActivityType.Text = "Activity Type:";
+            this.lblActivityType.Visible = false;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1040, 535);
+            this.Controls.Add(this.lblActivityType);
+            this.Controls.Add(this.listBoxActivity);
             this.Controls.Add(this.btnExport);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.listBoxExportFormal);
+            this.Controls.Add(this.listBoxExportFormat);
             this.Controls.Add(this.lblDuration);
             this.Controls.Add(this.lblDescent);
             this.Controls.Add(this.lblAscent);
@@ -211,9 +242,11 @@
         private System.Windows.Forms.Label lblAscent;
         private System.Windows.Forms.Label lblDescent;
         private System.Windows.Forms.Label lblDuration;
-        private System.Windows.Forms.ListBox listBoxExportFormal;
+        private System.Windows.Forms.ListBox listBoxExportFormat;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btnExport;
+        private System.Windows.Forms.ListBox listBoxActivity;
+        private System.Windows.Forms.Label lblActivityType;
     }
 }
 
