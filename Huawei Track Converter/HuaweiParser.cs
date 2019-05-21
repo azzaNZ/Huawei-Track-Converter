@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Device.Location;
 using System.Linq;
+using System.Xml;
 
 namespace Huawei_Track_Converter
 {
@@ -25,23 +26,30 @@ namespace Huawei_Track_Converter
         /// </summary>
         public double TotalDistance
         {
-            get { return _data.Sum(x => x.distance); }
+            get { return Data.Sum(x => x.distance); }
         }
         /// <summary>
         /// Total climbing meters
         /// </summary>
         public double Ascent
         {
-            get { return _data.Where(x => x.verticalDistance>0).Sum(x => x.verticalDistance); }
+            get { return Data.Where(x => x.verticalDistance>0).Sum(x => x.verticalDistance); }
         }
         /// <summary>
         /// Total descending meters
         /// </summary>
         public double Descent
         {
-            get { return Math.Abs(_data.Where(x => x.verticalDistance < 0).Sum(x => x.verticalDistance)); }
+            get { return Math.Abs(Data.Where(x => x.verticalDistance < 0).Sum(x => x.verticalDistance)); }
         }
 
+        /// <summary>
+        /// duration of exercise (in seconds)
+        /// </summary>
+        public long Duration
+        {
+            get { return Data.Max(x => x.time) - Data.Min(x=>x.time); }
+        }
 
         //path of file to attempt to parse as a huawei file
         public HuaweiParser(string path)
@@ -264,6 +272,94 @@ namespace Huawei_Track_Converter
             }
         }
 
+        /// <summary>
+        /// Export to GPX format
+        /// </summary>
+        public void ExportToGPX(string exportPath, string name)
+        {
+            try
+            {
+                //create document
+                XmlDocument doc = new XmlDocument();
+                XmlNode docNode = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
+                doc.AppendChild(docNode);
+
+                //create root node
+                XmlNode nodeRoot = doc.CreateElement("gpx");
+                //root attributes
+                XmlAttribute attribute = doc.CreateAttribute("xmlns:gpxext");
+                attribute.Value = @"http://www.garmin.com/xmlschemas/GpxExtensions/v3";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xmlns:gpxtpx");
+                attribute.Value = @"http://www.garmin.com/xmlschemas/TrackPointExtension/v1";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("xmlns:gpxdata");
+                attribute.Value = @"http://www.cluetrust.com/XML/GPXDATA/1/0";
+                nodeRoot.Attributes.Append(attribute);
+                attribute = doc.CreateAttribute("Creator");
+                attribute.Value = @"Huawei Track Converter";
+                nodeRoot.Attributes.Append(attribute);
+                //add root to document
+                doc.AppendChild(nodeRoot);
+
+                XmlNode nodeTrk = doc.CreateElement("trk");
+                nodeRoot.AppendChild(nodeTrk);
+                XmlNode nodeName = doc.CreateElement("name");
+                nodeName.InnerText = name;
+                nodeTrk.AppendChild(nodeName);
+
+                //do actual track
+                XmlNode nodeTrkseg = doc.CreateElement("trkseg");
+                nodeTrk.AppendChild(nodeTrkseg);
+                foreach (HuaweiDatumPoint point in Data)
+                {
+                    if (point.HasPosition)
+                    {
+                        //create point
+                        XmlNode nodeTrkpt = doc.CreateElement("trkpt");
+                        nodeTrk.AppendChild(nodeTrkpt);
+                        //point attributes
+                        XmlAttribute attributeTrkpt = doc.CreateAttribute("lat");
+                        attributeTrkpt.Value = point.latitude.ToString();
+                        nodeTrkpt.Attributes.Append(attributeTrkpt);
+                        attributeTrkpt = doc.CreateAttribute("lon");
+                        attributeTrkpt.Value = point.longitude.ToString();
+                        nodeTrkpt.Attributes.Append(attributeTrkpt);
+                        //time
+                        XmlNode pointTime = doc.CreateElement("time");
+                        pointTime.InnerText = point.utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                        nodeTrkpt.AppendChild(pointTime);
+                        //elevation
+                        XmlNode pointElevation = doc.CreateElement("ele");
+                        pointElevation.InnerText = point.altitude.ToString();
+                        nodeTrkpt.AppendChild(pointElevation);
+                    }
+
+                }
+
+                doc.Save(exportPath);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+
+        //Export to TCX format
+        public void ExportToTCX(string exportPath)
+        {
+            try
+            {
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+
     }
 
     /// <summary>
@@ -351,5 +447,6 @@ namespace Huawei_Track_Converter
             }
             
         }
+
     }
 }

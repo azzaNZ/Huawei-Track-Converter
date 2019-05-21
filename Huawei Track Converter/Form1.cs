@@ -19,6 +19,7 @@ namespace Huawei_Track_Converter
     public partial class Form1 : Form
     {
         private string folder = "";
+        private HuaweiParser hp = null;         
 
         public Form1()
         {
@@ -132,11 +133,21 @@ namespace Huawei_Track_Converter
             {
                 if (listBoxFiles.SelectedItems.Count > 0)
                 {
+                    //get path of huawei file to process
                     string path = $@"{folder}\{listBoxFiles.SelectedItems[0]}";
-                    HuaweiParser hp = new HuaweiParser(path);
+                    //go do work
+                    hp = new HuaweiParser(path);
+
+                    //interpret results
                     lblDistance.Text = $"Distance: {Convert.ToInt32(hp.TotalDistance).ToString()}m";
                     lblAscent.Text = $"Ascent: {Convert.ToInt32(hp.Ascent).ToString()}m";
                     lblDescent.Text = $"Descent: {Convert.ToInt32(hp.Descent).ToString()}m";
+
+                    //duration
+                    TimeSpan time = TimeSpan.FromSeconds(hp.Duration);
+                    lblDuration.Text = $"Duration: {time:hh\\:mm\\:ss}";
+
+                    //show track on map
                     LoadHuaweiDataOntoMap(hp);
                 }
             }
@@ -144,6 +155,37 @@ namespace Huawei_Track_Converter
             {
                 Console.WriteLine(exception);
                 MessageBox.Show(exception.Message);
+            }
+        }
+
+        private void btnExport_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string exportPath = $@"{folder}\{listBoxFiles.Text}";
+
+                if (listBoxFiles.Text == "")
+                    throw new Exception("Please select file to export");
+
+                switch (listBoxExportFormal.Text)
+                {
+                    case "GPX":
+                        exportPath += ".gpx";
+                        hp.ExportToGPX(exportPath, listBoxFiles.Text);
+                        MessageBox.Show($"Exported to {exportPath}");
+                        break;
+                    case "TCX":
+                        exportPath += ".tcx";
+                        hp.ExportToTCX(exportPath);
+                        break;
+                    default:
+                        throw new Exception ("Please select format to export to");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Could not export", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
     }

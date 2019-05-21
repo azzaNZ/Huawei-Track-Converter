@@ -75,6 +75,15 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="Documentation\ActivityExtensionv2.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Documentation\TrainingCenterDatabasev2.xsd">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Examples\HiTrack_1551732120000155173259000030001" />
+    <None Include="Examples\HiTrack_1551732120000155173259000030001.tcx" />
+    <None Include="Examples\HiTrack_1557362069000155736402200030001" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -89,5 +98,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
