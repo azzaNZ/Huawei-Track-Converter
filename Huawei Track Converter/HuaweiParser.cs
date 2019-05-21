@@ -56,6 +56,7 @@ namespace Huawei_Track_Converter
         {           
             int counter = 0;
             string line;
+            bool startOfSection = true;
 
             using (System.IO.StreamReader file =
                 new System.IO.StreamReader(path))
@@ -93,6 +94,15 @@ namespace Huawei_Track_Converter
 
                                         if (!ignoreAltitudeInLocationData)
                                             dataPoint.altitude = Convert.ToDouble(lineItemArray[4].Substring(4));
+
+                                        if (startOfSection)
+                                            dataPoint.startOfSection = true;
+                                        startOfSection = false;
+                                    }
+                                    else
+                                    {
+                                        //-90,80 occurs after pause
+                                        startOfSection = true;           //indicate a pause
                                     }
                                     break;
 
@@ -200,8 +210,9 @@ namespace Huawei_Track_Converter
                 index++;
                 if (point.HasPosition)
                 {
-                    //work out distance from previous position to here
-                    if (currentPoint != null)
+                    //work out distance from previous position to here.  
+                    //No point working out a start of section, there has been a break between last point and here
+                    if (currentPoint != null && !point.startOfSection)
                     {
                         //calculate distance
                         point.distance = currentPoint.position.GetDistanceTo(point.position); //distance in meters
@@ -213,9 +224,9 @@ namespace Huawei_Track_Converter
                             climbing += point.verticalDistance;
                     }
                     
-                    //check for obvious incorrect location
+                    //check for obviously incorrect location
                     //I've picked an arbitrary speed, 100km/h
-                    //I've seen instances in deep bush of the watch throwing in the odd rogue lat/long point
+                    //note, when filtering for startofsection, this may not be required
                     if (point.speed > 100)
                         removePoints.Add(point);
                     else
@@ -309,15 +320,24 @@ namespace Huawei_Track_Converter
                 nodeTrk.AppendChild(nodeName);
 
                 //do actual track
-                XmlNode nodeTrkseg = doc.CreateElement("trkseg");
-                nodeTrk.AppendChild(nodeTrkseg);
+                XmlNode nodeTrkseg = null;
                 foreach (HuaweiDatumPoint point in Data)
                 {
+                    //todo look for big gaps in time between points & use to split into separate segments
+                    //todo look at precision (2dp dropped from lat/long)
                     if (point.HasPosition)
                     {
+                        //look for start of section
+                        if (point.startOfSection || nodeTrkseg==null)
+                        {
+                            //create new track segment
+                            nodeTrkseg = doc.CreateElement("trkseg");
+                            nodeTrk.AppendChild(nodeTrkseg);
+                        }
+
                         //create point
                         XmlNode nodeTrkpt = doc.CreateElement("trkpt");
-                        nodeTrk.AppendChild(nodeTrkpt);
+                        nodeTrkseg.AppendChild(nodeTrkpt);
                         //point attributes
                         XmlAttribute attributeTrkpt = doc.CreateAttribute("lat");
                         attributeTrkpt.Value = point.latitude.ToString();
@@ -423,11 +443,12 @@ namespace Huawei_Track_Converter
         public bool HasPosition => latitude != 0 || longitude != 0;
 
         public GeoCoordinate position { get; private set; }     //lat/long as coordinate
-        public double distance { get; set; }            //distance covered since last position
-        public double verticalDistance { get; set; }    //climbing if positive, descending if negative
+        public double distance { get; set; }            //distance in meters covered since last position
+        public double verticalDistance { get; set; }    //in meters, climbing if positive, descending if negative
         public double speed { get; set; }               //speed in km/h
         public int heartRate { get; set; }              //heartRate
         public int cadence { get; set; }                //cadence
+        public bool startOfSection { get; set; }        //occurs after a pause
 
         /// <summary>
         /// Sort based on recorded time

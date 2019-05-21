@@ -177,6 +177,7 @@ namespace Huawei_Track_Converter
                     case "TCX":
                         exportPath += ".tcx";
                         hp.ExportToTCX(exportPath);
+                        MessageBox.Show($"Exported to {exportPath}");
                         break;
                     default:
                         throw new Exception ("Please select format to export to");
