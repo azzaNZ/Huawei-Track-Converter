@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Device.Location;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Xml;
 
 namespace Huawei_Track_Converter
@@ -365,7 +367,7 @@ namespace Huawei_Track_Converter
         }
 
         //Export to TCX format
-        public void ExportToTCX(string exportPath)
+        public void ExportToTCX(string exportPath, string sport)
         {
             try
             {
@@ -395,16 +397,184 @@ namespace Huawei_Track_Converter
                 attribute.Value = @"https://www8.garmin.com/xmlschemas/TrainingCenterDatabasev2.xsd";
                 nodeRoot.Attributes.Append(attribute);
 
+                XmlNode nodeAuthor = doc.CreateElement("Author");
+                nodeRoot.AppendChild(nodeAuthor);
+                attribute = doc.CreateAttribute("xsi:type");
+                attribute.Value = "Application_t";
+                XmlNode nodeAuthorName = doc.CreateElement("Name");
+                nodeAuthorName.InnerText = "Azza's Huawei Track Converter";
+                nodeAuthor.AppendChild(nodeAuthorName);
+
+                XmlNode nodeBuild = doc.CreateElement("Build");
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+                nodeBuild.InnerXml = $@"<Version>
+    <VersionMajor>{fileVersionInfo.FileMajorPart.ToString()}</VersionMajor>
+    <VersionMinor>{fileVersionInfo.FileMinorPart}</VersionMinor>
+    <BuildMajor>{fileVersionInfo.FileBuildPart}</BuildMajor>
+    <BuildMinor>{fileVersionInfo.FilePrivatePart}</BuildMinor>
+</Version>";
+                nodeAuthor.AppendChild(nodeBuild);
+
                 //create activity structure
                 XmlNode nodeActivities = doc.CreateElement("Activities");
                 nodeRoot.AppendChild(nodeActivities);
                 XmlNode nodeActivity = doc.CreateElement("Activity");
                 nodeActivities.AppendChild(nodeActivity);
+                //activity attributes
+                attribute = doc.CreateAttribute("Sport");
+                attribute.Value = sport;
+                nodeActivity.Attributes.Append(attribute);
 
                 //id - use UTC Time of first point
                 XmlNode nodeId = doc.CreateElement("Id");
                 nodeId.InnerText = Data.FirstOrDefault().utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 nodeActivity.AppendChild(nodeId);
+
+                //creator
+                XmlNode nodeCreator = doc.CreateElement("Creator");
+                nodeActivity.AppendChild(nodeCreator);
+                //creator attributes
+                attribute = doc.CreateAttribute("xsi:type");
+                attribute.Value = "Device_t";
+                nodeCreator.Attributes.Append(attribute);
+                XmlNode nodeName = doc.CreateElement("Name");
+                nodeName.InnerText = "Huawei Fitness Tracking Device";
+                nodeCreator.AppendChild(nodeName);
+                XmlNode nodeUnitId = doc.CreateElement("UnitId");
+                nodeUnitId.InnerText = "0000000000";
+                nodeCreator.AppendChild(nodeUnitId);
+                XmlNode nodeProductId = doc.CreateElement("ProductId");
+                nodeProductId.InnerText = "0000";
+                nodeCreator.AppendChild(nodeProductId);
+                XmlNode nodeVersion = doc.CreateElement("Version");
+                //short circuit having to create all these version elements
+                nodeVersion.InnerXml =
+                    @"<VersionMajor>0</VersionMajor>
+<VersionMinor>0</VersionMinor>
+<BuildMajor>0</BuildMajor>
+<BuildMinor>0</BuildMinor>";
+                nodeCreator.AppendChild(nodeVersion);
+
+                //lap
+                XmlNode nodeLap = doc.CreateElement("Lap");
+                nodeActivity.AppendChild(nodeLap);
+                attribute = doc.CreateAttribute("StartTime");
+                attribute.Value = Data.FirstOrDefault().utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                nodeLap.Attributes.Append(attribute);
+
+                //TotalTimeSeconds
+                XmlNode nodeTotalTimeSeconds = doc.CreateElement("TotalTimeSeconds");
+                nodeTotalTimeSeconds.InnerText = Duration.ToString();
+                nodeLap.AppendChild(nodeTotalTimeSeconds);
+
+                //DistanceMeters
+                XmlNode nodeDistanceMeters = doc.CreateElement("DistanceMeters");
+                nodeDistanceMeters.InnerText = TotalDistance.ToString();
+                nodeLap.AppendChild(nodeDistanceMeters);
+
+                //Calories
+                XmlNode nodeCalories = doc.CreateElement("Calories");
+                nodeCalories.InnerText = "0";
+                nodeLap.AppendChild(nodeCalories);
+
+                //Intensity
+                XmlNode nodeIntensity = doc.CreateElement("Intensity");
+                nodeIntensity.InnerText = "Active";
+                nodeLap.AppendChild(nodeIntensity);
+
+                //TriggerMethod
+                XmlNode nodeTriggerMethod = doc.CreateElement("TriggerMethod");
+                nodeTriggerMethod.InnerText = "Manual";
+                nodeLap.AppendChild(nodeTriggerMethod);
+
+                //do actual track
+                XmlNode nodeTrack = null;
+                foreach (HuaweiDatumPoint point in Data)
+                {
+                    //todo look at precision (2dp dropped from lat/long)
+                    if (point.HasPosition)
+                    {
+                        //look for start of section
+                        if (point.startOfSection || nodeTrack == null)
+                        {
+                            //create new track segment
+                            nodeTrack = doc.CreateElement("Track");
+                            nodeLap.AppendChild(nodeTrack);
+                        }
+
+                        //create Trackpoint
+                        XmlNode nodeTrackpoint = doc.CreateElement("Trackpoint");
+                        nodeTrack.AppendChild(nodeTrackpoint);
+
+                        //chidlren of Trackpoint
+                        //time
+                        XmlNode nodeTime = doc.CreateElement("Time");
+                        nodeTime.InnerText = point.utcTime.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                        nodeTrackpoint.AppendChild(nodeTime);
+
+                        //position
+                        double cumulativeDistance = 0;
+                        if (point.HasPosition)
+                        {
+                            XmlNode nodePosition = doc.CreateElement("Position");
+                            nodeTrackpoint.AppendChild(nodePosition);
+
+                            //LatitudeDegrees
+                            XmlNode nodeLatitudeDegrees = doc.CreateElement("LatitudeDegrees");
+                            nodeLatitudeDegrees.InnerText = point.latitude.ToString();
+                            nodePosition.AppendChild(nodeLatitudeDegrees);
+                            //LongitudeDegrees
+                            XmlNode nodeLongitudeDegrees = doc.CreateElement("LongitudeDegrees");
+                            nodeLongitudeDegrees.InnerText = point.longitude.ToString();
+                            nodePosition.AppendChild(nodeLongitudeDegrees);
+
+                            //DistanceMeters
+                            XmlNode nodePointDistanceMeters = doc.CreateElement("DistanceMeters");
+                            cumulativeDistance += point.distance;
+                            nodePointDistanceMeters.InnerText = cumulativeDistance.ToString();
+                            nodeTrackpoint.AppendChild(nodePointDistanceMeters);
+                        }
+
+                        //altitude
+                        XmlNode nodeAltitude = doc.CreateElement("AltitudeMeters");
+                        nodeAltitude.InnerText = point.altitude.ToString();
+                        nodeTrackpoint.AppendChild(nodeAltitude);
+
+                        //HeartRateBpm
+                        if (point.heartRate > 0)
+                        {
+                            XmlNode nodeHeartRateBpm = doc.CreateElement("HeartRateBpm");
+                            nodeTrackpoint.AppendChild(nodeHeartRateBpm);
+                            //attribute
+                            attribute = doc.CreateAttribute("xsi:type");
+                            attribute.Value = @"HeartRateInBeatsPerMinute_t";
+                            nodeHeartRateBpm.Attributes.Append(attribute);
+                            //Value
+                            XmlNode nodeHeartRateValue = doc.CreateElement("Value");
+                            nodeHeartRateValue.InnerText = point.heartRate.ToString();
+                            nodeHeartRateBpm.AppendChild(nodeHeartRateValue);                          
+                        }
+
+                        //Cadence
+                        if (point.cadence > 0)
+                        {
+                            XmlNode nodeExtensions = doc.CreateElement("Extensions");
+                            nodeTrackpoint.AppendChild(nodeExtensions);
+                            XmlNode nodeTPX = doc.CreateElement("TPX");
+                            nodeExtensions.AppendChild(nodeTPX);
+                            //attribute
+                            attribute = doc.CreateAttribute("xmlns");
+                            attribute.Value = $@"http://www.garmin.com/xmlschemas/ActivityExtension/v2";
+                            nodeTPX.Attributes.Append(attribute);
+                            //RunCadence
+                            XmlNode nodeRunCadence = doc.CreateElement("RunCadence");
+                            nodeRunCadence.InnerText = point.cadence.ToString();
+                            nodeTPX.AppendChild(nodeRunCadence);
+                        }
+                    }
+
+                }
 
                 doc.Save(exportPath);
             }

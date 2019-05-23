@@ -94,25 +94,19 @@ namespace Huawei_Track_Converter
                 GMapRoute line_layer = new GMapRoute("single_line") { Stroke = new Pen(Brushes.Blue, 4) };
                 GMapOverlay line_overlay = new GMapOverlay("route");
 
-                gMapControl1.Overlays.Clear();              //remove any previous 
+                gMapControl1.Overlays.Clear();              //remove any previous routes on map
                 line_overlay.Routes.Add(line_layer);
                 gMapControl1.Overlays.Add(line_overlay);
 
-                //simply add the points you want
-
+                //add route points
                 foreach (HuaweiDatumPoint point in hp.Data)
                 {
-                    //start of section ignored, as sometimes ends with 'rogue' start of section
+                    //start of section ignored, as track sometimes ends with 'rogue' start of section
                     if (point.HasPosition  && !point.startOfSection)
                     {
                         line_layer.Points.Add(new PointLatLng(point.latitude, point.longitude));
                     }
                 }
-                //line_layer.Points.Add(new PointLatLng(lat, lon));
-                //line_layer.Points.Add(new PointLatLng(lat2, lon2));
-
-                //Note that if you are using the MouseEventArgs you need to use local coordinates and convert them:
-                //line_layer.Points.Add(gMapControl1.FromLocalToLatLng(e.X, e.Y));
 
                 //To force the draw, you need to update the route
                 gMapControl1.UpdateRouteLocalPosition(line_layer);
@@ -151,9 +145,9 @@ namespace Huawei_Track_Converter
                     hp = new HuaweiParser(path);
 
                     //interpret results
-                    lblDistance.Text = $"Distance: {Convert.ToInt32(hp.TotalDistance).ToString()}m";
-                    lblAscent.Text = $"Ascent: {Convert.ToInt32(hp.Ascent).ToString()}m";
-                    lblDescent.Text = $"Descent: {Convert.ToInt32(hp.Descent).ToString()}m";
+                    lblDistance.Text = $@"Distance: {Convert.ToInt32(hp.TotalDistance).ToString()}m";
+                    lblAscent.Text = $@"Ascent: {Convert.ToInt32(hp.Ascent).ToString()}m";
+                    lblDescent.Text = $@"Descent: {Convert.ToInt32(hp.Descent).ToString()}m";
 
                     //duration
                     TimeSpan time = TimeSpan.FromSeconds(hp.Duration);
@@ -190,12 +184,12 @@ namespace Huawei_Track_Converter
                     case "GPX":
                         exportPath += ".gpx";
                         hp.ExportToGPX(exportPath, listBoxFiles.Text);
-                        MessageBox.Show($"Exported to {exportPath}");
+                        MessageBox.Show($@"Exported to {exportPath}");
                         break;
                     case "TCX":
                         exportPath += ".tcx";
-                        hp.ExportToTCX(exportPath);
-                        MessageBox.Show($"Exported to {exportPath}");
+                        hp.ExportToTCX(exportPath, listBoxActivity.Text);
+                        MessageBox.Show($@"Exported to {exportPath}");
                         break;
                     default:
                         throw new Exception ("Please select format to export to");
